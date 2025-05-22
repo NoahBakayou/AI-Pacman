@@ -87,17 +87,118 @@ def depthFirstSearch(problem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # print("Start:", problem.getStartState())
+    # print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
+    # print("Start's successors:", problem.getSuccessors(problem.getStartState()))
+
+    from util import Stack  # Import Stack for DFS
+
+    stack = Stack()  # Stack to keep track of positions and paths
+    visited = set()  # Set to store visited positions
+
+    # Get the starting position of Pac-Man
+    start_position = problem.getStartState()
+    start_path = []  # No moves have been made yet
+
+    # Push the start position and path into the stack
+    stack.push([start_position, start_path])
+
+    while not stack.isEmpty():
+        # Pop the most recent position and path from the stack
+        current_position, current_path = stack.pop()
+
+        # If Pac-Man has reached the goal, return the path taken
+        if problem.isGoalState(current_position):
+            return current_path
+
+        # If this position has not been visited yet, process it
+        if current_position not in visited:
+            visited.add(current_position)  # Mark as visited
+
+            # Get all possible next moves from the current position
+            for next_position, action, _ in problem.getSuccessors(current_position):
+                if next_position not in visited:
+                    new_path = current_path + [action]  # Create an updated path
+                    stack.push([next_position, new_path])  # Push new state into stack
+
+    return []  # Return an empty list if no solution is found
 
 def breadthFirstSearch(problem):
-    """Search the shallowest nodes in the search tree first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    """
+    Implements Breadth-First Search (BFS) for Pac-Man in a grid-based environment.
+    Returns a list of actions that lead to the goal.
+    """
+    from util import Queue  # Import Queue for BFS
+
+    queue = Queue()  # Queue for BFS (FIFO)
+    visited = set()  # Tracks visited positions
+
+    # Get the starting position of Pac-Man
+    start_position = problem.getStartState()
+    start_path = []  # No moves yet
+
+    # Push the start position and path into the queue
+    queue.push([start_position, start_path])
+
+    while not queue.isEmpty():
+        # Remove the first item from the queue (FIFO)
+        current_position, current_path = queue.pop()
+
+        # If Pac-Man has reached the goal, return the path taken
+        if problem.isGoalState(current_position):
+            return current_path
+
+        # If this position hasn't been visited, explore it
+        if current_position not in visited:
+            visited.add(current_position)  # Mark as visited
+
+            # Get all possible next moves
+            for next_position, action, _ in problem.getSuccessors(current_position):
+                if next_position not in visited:
+                    new_path = current_path + [action]  # Update path
+                    queue.push([next_position, new_path])  # Add new state to queue
+
+    return []  # Return an empty list if no solution is found
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    """
+    Implements Uniform-Cost Search (UCS) for Pac-Man.
+    Returns a list of actions that lead to the goal.
+    """
+    from util import PriorityQueue  # Import Priority Queue for UCS
+
+    priority_queue = PriorityQueue()  # Priority queue stores (state, path, cost)
+    visited = {}  # Dictionary to store best known cost for each state
+
+    # Get the starting position
+    start_position = problem.getStartState()
+    start_path = []  # No moves yet
+    start_cost = 0  # Initial cost is zero
+
+    # Push the start state into the priority queue with priority = 0
+    priority_queue.push((start_position, start_path, start_cost), start_cost)
+
+    while not priority_queue.isEmpty():
+        # Pop the state with the lowest cost
+        current_position, current_path, current_cost = priority_queue.pop()
+
+        # If we reached the goal, return the path
+        if problem.isGoalState(current_position):
+            return current_path
+
+        # Check if we have already visited this state with a lower cost
+        if current_position not in visited or current_cost < visited[current_position]:
+            visited[current_position] = current_cost  # Update best cost for this state
+
+            # Expand current state and add successors to the queue
+            for next_position, action, step_cost in problem.getSuccessors(current_position):
+                new_cost = current_cost + step_cost  # Update cost
+                new_path = current_path + [action]  # Update path
+                priority_queue.push((next_position, new_path, new_cost), new_cost)
+
+    return []  # Return empty list if no solution found
 
 def nullHeuristic(state, problem=None):
     """
@@ -109,7 +210,49 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    """
+    Implements A* Search for Pac-Man.
+    Uses a heuristic function to guide the search.
+    Returns a list of actions leading to the goal.
+    """
+    from util import PriorityQueue  # Import priority queue
+
+    priority_queue = PriorityQueue()  # Priority queue for A* (stores state, path, cost)
+    visited = {}  # Dictionary to store best known cost for each state
+
+    # Get the starting position
+    start_position = problem.getStartState()
+    start_path = []  # No moves yet
+    start_cost = 0  # Initial cost is zero
+
+    # Compute f(n) = g(n) + h(n)
+    start_priority = start_cost + heuristic(start_position, problem)
+
+    # Push the start state into the priority queue
+    priority_queue.push((start_position, start_path, start_cost), start_priority)
+
+    while not priority_queue.isEmpty():
+        # Pop the state with the lowest f(n)
+        current_position, current_path, current_cost = priority_queue.pop()
+
+        # If we reached the goal, return the path
+        if problem.isGoalState(current_position):
+            return current_path
+
+        # Check if we have already visited this state with a lower cost
+        if current_position not in visited or current_cost < visited[current_position]:
+            visited[current_position] = current_cost  # Update best cost for this state
+
+            # Expand current state and add successors to the queue
+            for next_position, action, step_cost in problem.getSuccessors(current_position):
+                new_cost = current_cost + step_cost  # Update path cost g(n)
+                heuristic_cost = heuristic(next_position, problem)  # Compute h(n)
+                new_priority = new_cost + heuristic_cost  # Compute f(n)
+
+                new_path = current_path + [action]  # Update path
+                priority_queue.push((next_position, new_path, new_cost), new_priority)
+
+    return []  # Return empty list if no solution found
 
 
 # Abbreviations

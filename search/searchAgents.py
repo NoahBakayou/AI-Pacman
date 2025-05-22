@@ -295,14 +295,19 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # The start state consists of:
+        # 1) Pacman's starting position as (x, y)
+        # 2) A tuple representing the corners visited so far (initially empty)
+        return (self.startingPosition, ())
 
     def isGoalState(self, state):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # The goal is reached when all four corners have been visited.
+        position, visited_corners = state
+        return len(visited_corners) == 4
 
     def getSuccessors(self, state):
         """
@@ -316,6 +321,8 @@ class CornersProblem(search.SearchProblem):
         """
 
         successors = []
+        position, visited_corners = state  # Unpack the current state
+
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
             # Add a successor state to the successor list if the action is legal
             # Here's a code snippet for figuring out whether a new position hits a wall:
@@ -325,6 +332,20 @@ class CornersProblem(search.SearchProblem):
             #   hitsWall = self.walls[nextx][nexty]
 
             "*** YOUR CODE HERE ***"
+            x, y = position
+            dx, dy = Actions.directionToVector(action)  # Convert action to movement
+            nextx, nexty = int(x + dx), int(y + dy)  # Compute new position
+
+            if not self.walls[nextx][nexty]:  # Ensure the move is legal
+                next_position = (nextx, nexty)
+
+                # If Pac-Man reaches a corner, update the visited corners
+                new_corners = set(visited_corners)  # Convert tuple to set for modification
+                if next_position in self.corners:
+                    new_corners.add(next_position)  # Mark this corner as visited
+
+                new_state = (next_position, tuple(new_corners))  # Convert back to tuple
+                successors.append((new_state, action, 1))  # Cost is always 1
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
@@ -360,7 +381,20 @@ def cornersHeuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    position, visited = state
+    unvisited = [corner for corner in corners if corner not in visited]
+
+    heuristic = 0
+    current = position
+
+    while unvisited:
+        distances = [(util.manhattanDistance(current, corner), corner) for corner in unvisited]
+        minDist, nearest = min(distances)
+        heuristic += minDist
+        current = nearest
+        unvisited.remove(nearest)
+
+    return heuristic
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -453,8 +487,19 @@ def foodHeuristic(state, problem):
     problem.heuristicInfo['wallCount']
     """
     position, foodGrid = state
-    "*** YOUR CODE HERE ***"
-    return 0
+    foodList = foodGrid.asList()
+
+    if not foodList:
+        return 0
+
+    # Cache maze distances between points
+    maxDist = 0
+    for food in foodList:
+        if (position, food) not in problem.heuristicInfo:
+            problem.heuristicInfo[(position, food)] = mazeDistance(position, food, problem.startingGameState)
+        maxDist = max(maxDist, problem.heuristicInfo[(position, food)])
+
+    return maxDist
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
